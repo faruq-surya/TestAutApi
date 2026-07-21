@@ -38,3 +38,19 @@ jobs:
 
       - name: Show Git Version
         run: git --version
+        
+      - name: Create Folder
+        run: mkdir build
+        
+      - name: Copy File
+        run: cp hello.txt build/
+
+      - name: Show Build Folder
+        run: ls build
+        
+      - name: Rename hello.txt to greeting.txt
+        run: mv hello.txt greeting.txt
+      
+      - name: Show Build Folder after Rename
+        run: ls build
+        
