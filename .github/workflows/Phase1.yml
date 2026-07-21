@@ -18,6 +18,9 @@ jobs:
       - name: Say Hello
         run: echo "Hello Faruq!"
 
+      - name: Display File
+        run: cat hello.txt
+
       - name: Show Current Directory
         run: pwd
 
