@@ -45,11 +45,13 @@ jobs:
       - name: Copy File
         run: cp hello.txt build/
 
-      - name: Show Build Folder
-        run: ls build
+      - name: Show Current Directory
+        run: |
+              pwd
+              ls -R
         
-      - name: Rename hello.txt to greeting.txt
-        run: mv hello.txt greeting.txt
+      - name: Rename File Inside Build
+        run: mv build/hello.txt build/greeting.txt
       
       - name: Show Build Folder after Rename
         run: ls build
