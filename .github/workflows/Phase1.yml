@@ -14,49 +14,12 @@ jobs:
 
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Stop IIS Pools
+      - name: Modify File
         shell: powershell
-        run: ./scripts/StopPools.ps1
-      
-      - name: Say Hello
-        run: echo "Hello Faruq!"
-
-      - name: Display File
-        run: cat hello.txt
-
-      - name: Show Current Directory
-        run: pwd
-
-      - name: List Repository Files
-        run: ls -la
-
-      - name: Show Current User
-        run: whoami
-
-      - name: Show Operating System
-        run: uname -a
-
-      - name: Show Java Version
-        run: java -version
-
-      - name: Show Git Version
-        run: git --version
-        
-      - name: Create Folder
-        run: mkdir build
-        
-      - name: Copy File
-        run: cp hello.txt build/
-
-      - name: Show Current Directory
         run: |
-              pwd
-              ls -R
+          Add-Content hello.txt "Updated by GitHub Actions"
         
-      - name: Rename File Inside Build
-        run: mv build/hello.txt build/greeting.txt
-      
-      - name: Show Build Folder after Rename
-        run: ls build
-        
+      - name: Read File
+        shell: powershell
+        run: |
+          Get-Content hello.txt
