@@ -2,6 +2,7 @@ Import-Module WebAdministration
 
 $pools = @(
     "CARE_API",
+    "CARE_RRS_API",
     "CARE_PL",
     "CARE_WSL"
 )
