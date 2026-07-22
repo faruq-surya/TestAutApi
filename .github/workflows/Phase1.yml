@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Stop IIS Pools
-        shell: pwsh
+        shell: powershell
         run: ./scripts/StopPools.ps1
       
       - name: Say Hello
