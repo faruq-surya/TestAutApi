@@ -1,3 +1,0 @@
-open sftp://CARE4:kg1DqZ2rW3MFYC@sftp.surya-products.com:22
-get /CARE4/CARE_TEST_RELEASE/CARE4_RELEASE_5.14.4.zip D:\Releases\CapAd\
-exit

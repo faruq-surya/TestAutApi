@@ -1,3 +1,0 @@
-open sftp://RRS5:VyZCcWpSP2QcC@sftp.surya-products.com:22
-get /RRS5/RRS5_TEST_RELEASE/RRS5_RELEASE_5.6.4.zip D:\Releases\RRS\
-exit
