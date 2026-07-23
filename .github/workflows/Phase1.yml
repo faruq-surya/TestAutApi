@@ -19,7 +19,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force D:\DeployDemo
           
-      - name: Stop IIS Pools
+      - name: Start IIS Pools
         shell: powershell
-        run: ./scripts/StopPools.ps1
+        run: ./scripts/StartPools.ps2
 
