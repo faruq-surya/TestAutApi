@@ -1,9 +1,7 @@
 name: Phase 1 - Learn Runner
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   first-job:
