@@ -21,5 +21,5 @@ jobs:
           
       - name: Start IIS Pools
         shell: powershell
-        run: ./scripts/StartPools.ps2
+        run: ./scripts/StartPools.ps1
 
