@@ -24,7 +24,9 @@ jobs:
 
       - name: Check Newman Version
         run: newman -v
-
-      - name: Run Postman Collection
+        
+      - name: Execute Collection
         run: |
-          newman run postman/collections/CreateUser.postman_collection.json -e postman/environments/UAT.postman_environment.json
+          newman run postman/collections/CreateUser.postman_collection.json `
+            -e postman/environments/UAT.postman_environment.json `
+            --insecure
