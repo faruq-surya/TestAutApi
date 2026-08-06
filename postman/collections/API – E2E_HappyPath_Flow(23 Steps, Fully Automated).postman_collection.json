@@ -1,0 +1,1767 @@
+{
+  "info": {
+    "_postman_id": "f6ca84a0-0361-448d-8989-e3d7a2d54e33",
+    "name": "UAM API – E2E Happy Path Flow (23 Steps, Fully Automated)",
+    "description": "═══════════════════════════════════════════════════════\n  UAM API – End-to-End Happy Path Test Execution\n═══════════════════════════════════════════════════════\n\nPURPOSE:\n  Validates the core functionality of all UAM APIs in a\n  realistic user lifecycle flow with ZERO manual updates.\n\nFLOW (23 Steps):\n  01. Authenticate → store JWT token (auto-refreshes)\n  02. List All Roles (reference baseline)\n  03. Get All Users (count baseline)\n  04. Get All Users V2 (status baseline)\n  05. Create Test User test.user01\n  06. Get User → validate creation\n  07. Get User V2 → Status = Enabled\n  08. Has Role → validate role assignment\n  09. List Groups for User\n  10. Update User (multiple fields)\n  11. Get User → verify updated fields\n  12. Disable User\n  13. Get User V2 → Status = Disabled\n  14. Enable User\n  15. Get User V2 → Status = Enabled\n  16. Lock User\n  17. Get User V2 → Status = Locked\n  18. Unlock User\n  19. Get User V2 → Status = Enabled\n  20. Delete User (soft delete)\n  21. Restore User\n  22. Get User V2 → validate restored\n  23. Delete User (final cleanup)\n\nFULLY AUTOMATED:\n  • Token fetched + cached in Step 01, injected in all steps\n  • TranRefNum auto-increments per step (no duplicates)\n  • UserName/Email/Role pulled from Environment variables\n  • Change testUserName in env → entire flow runs for that user\n\nHOW TO RUN:\n  1. Import collection + environment\n  2. Select environment\n  3. Click Run → Run collection\n  4. Click Run (Runner) — all 23 steps execute sequentially\n\nRERUNNABLE:\n  If Step 5 fails (user already exists), change testUserName\n  in the environment or run Step 23 manually to clean up first.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "31569703",
+    "_collection_link": "https://go.postman.co/collection/31569703-f6ca84a0-0361-448d-8989-e3d7a2d54e33?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Step 01 – Authentication (Get Bearer Token)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Reset flow counters at start of every E2E run",
+              "pm.environment.set('tranCounter', '0');",
+              "pm.environment.set('testUserName', pm.environment.get('testUserName') || 'test.user01');",
+              "console.log('═══ E2E Happy Path Flow Starting ═══');",
+              "console.log('Test UserName:', pm.environment.get('testUserName'));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('access_token present', () => {",
+              "    pm.expect(j).to.have.property('access_token');",
+              "    pm.expect(j.access_token).to.be.a('string').and.not.empty;",
+              "  });",
+              "  pm.test('token_type = bearer', () => pm.expect(j.token_type.toLowerCase()).to.eql('bearer'));",
+              "  pm.test('expires_in is positive', () => pm.expect(j.expires_in).to.be.above(0));",
+              "  pm.environment.set('access_token', j.access_token);",
+              "  pm.environment.set('token_expiry', Date.now() + (j.expires_in - 60) * 1000);",
+              "  console.log('✅ Step 01 PASS – Token stored. Expires in', j.expires_in, 'seconds.');",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "grant_type",
+              "value": "{{auth_grant_type}}"
+            },
+            {
+              "key": "resource",
+              "value": "{{auth_resource}}"
+            },
+            {
+              "key": "client_id",
+              "value": "{{auth_client_id}}"
+            },
+            {
+              "key": "client_secret",
+              "value": "{{auth_client_secret}}"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{auth_url}}",
+          "host": [
+            "{{auth_url}}"
+          ]
+        },
+        "description": "Fetches the OAuth2 Bearer token. Stores it in environment as 'access_token'. Also stores expiry epoch. All subsequent steps use this token automatically."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 02 – List All Roles (Reference)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "// GET – no body needed",
+              "console.log('Step 02: Fetching all roles for reference...');"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const roles = pm.response.json();",
+              "  pm.test('Roles response is an array', () => pm.expect(roles).to.be.an('array'));",
+              "  pm.test('At least one role exists', () => pm.expect(roles.length).to.be.above(0));",
+              "  pm.test('Each role has a Role field', () => {",
+              "    roles.forEach(r => pm.expect(r).to.have.property('Role'));",
+              "  });",
+              "  pm.environment.set('MakerRoleName', roles[2].Role);",
+              "  console.log('✅ Step 02 PASS – Roles count:', roles.length, '| Maker Role:', roles[0].Role);",
+              "})();"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"TranRefNum\": \"{{currentTran}}\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetAllRoles",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetAllRoles"
+          ]
+        },
+        "description": "GET /API/GetAllRoles – Lists all active roles. Validates response is a non-empty array with Role field on each item."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 03 – Get All Users – Baseline Count",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 03: Capturing baseline user count...');"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const users = pm.response.json();",
+              "  pm.test('GetAllUsers returns an array', () => pm.expect(users).to.be.an('array'));",
+              "  pm.environment.set('baselineUserCount', users.length);",
+              "  console.log('✅ Step 03 PASS – Baseline user count:', users.length);",
+              "})();"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"TranRefNum\": \"{{currentTran}}\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetAllUsers",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetAllUsers"
+          ]
+        },
+        "description": "GET /API/GetAllUsers – Captures baseline user count before creating the test user."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 04 – Get All Users V2 – Baseline Status",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 04: Capturing baseline V2 status...');"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const usersV2 = pm.response.json();",
+              "  pm.test('GetAllUsersV2 returns an array', () => pm.expect(usersV2).to.be.an('array'));",
+              "  pm.test('Each user has a Status field', () => {",
+              "    if (usersV2.length > 0) pm.expect(usersV2[0]).to.have.property('Status');",
+              "  });",
+              "  pm.environment.set('baselineUserCountV2', usersV2.length);",
+              "  console.log('✅ Step 04 PASS – V2 baseline count:', usersV2.length);",
+              "})();"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"TranRefNum\": \"{{currentTran}}\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetAllUsersV2",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetAllUsersV2"
+          ]
+        },
+        "description": "GET /API/GetAllUsersV2 – Captures baseline V2 list. V2 includes the Status field (Enabled/Disabled/Locked)."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 05 – Create New Test User (test.user01)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "",
+              "let id = Date.now();",
+              "pm.environment.set('testUserName', 'test.user.' + id);",
+              "pm.environment.set(\"testUserEmail\", \"test.user.\" + id + \"@bank.com\");",
+              "",
+              "",
+              "console.log('Step 05: Creating test user:', pm.environment.get('testUserName'));"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('Response has status field',    () => pm.expect(j).to.have.property('status'));",
+              "  pm.test('Response has message field',   () => pm.expect(j).to.have.property('message'));",
+              "  pm.test('Response has tranRefNum field',() => pm.expect(j).to.have.property('tranRefNum'));",
+              "  pm.test('API status = 0 (success)',     () => pm.expect(String(j.status)).to.eql('0'));",
+              "  pm.test('message confirms created',     () => pm.expect(j.message.toLowerCase()).to.include('created successfully'));",
+              "  pm.test('message contains username',    () => pm.expect(j.message.toLowerCase()).to.include(pm.environment.get('testUserName').toLowerCase()));",
+              "  pm.test('tranRefNum echoed back',       () => pm.expect(j.tranRefNum).to.be.a('string').and.not.empty);",
+              "  console.log('✅ Step 05 PASS – User created:', pm.environment.get('testUserName'), '| tranRefNum:', j.tranRefNum);",
+              "})();"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"Salutation\": \"Mr\",\n  \"FirstName\": \"Test\",\n  \"MiddleName\": \"E2E\",\n  \"LastName\": \"User\",\n  \"UserName\": \"{{testUserName}}\",\n  \"DOB\": \"01-01-1990\",\n  \"RoleName\": \"{{testUserRole}}\",\n  \"IsActive\": \"Y\",\n  \"AddressLine1\": \"123 Test Street\",\n  \"AddressLine2\": \"\",\n  \"AddressLine3\": \"\",\n  \"City\": \"Bengaluru\",\n  \"State\": \"Karnataka\",\n  \"Country\": \"India\",\n  \"PostalCode\": \"560001\",\n  \"MobileNo\": \"9876543210\",\n  \"PhoneNo\": \"\",\n  \"AlternatePhoneNo\": \"\",\n  \"FaxNo\": \"\",\n  \"Email\": \"{{testUserEmail}}\",\n  \"GooglePlusID\": \"\",\n  \"FacebookID\": \"\",\n  \"TwitterID\": \"\",\n  \"UserNotes1\": \"Bank\",\n  \"UserNotes2\": \"\",\n  \"UserNotes3\": \"E2E Test\",\n  \"UserNotes4\": \"\",\n  \"UserIDExpiryDt\": \"01-01-2100\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/CreateUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "CreateUser"
+          ]
+        },
+        "description": "POST /API/CreateUser – Creates the test user with all fields. UserName, Email, and Role are from environment variables so no manual edit is needed."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 06 – Get User – Validate Creation",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 06: Validating user creation via GetUser...');"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('UserName matches created user', () => pm.expect(j.UserName).to.eql(pm.environment.get('testUserName')));",
+              "  pm.test('FirstName = Test',              () => pm.expect(j.FirstName).to.eql('Test'));",
+              "  pm.test('Role is correct',               () => pm.expect(j.Role).to.eql(pm.environment.get('testUserRole')));",
+              "  pm.test('Email is correct',              () => pm.expect(j.Email).to.eql(pm.environment.get('testUserEmail')));",
+              "  pm.test('IsActive = Yes',                () => pm.expect(j.IsActive).to.eql('Y'));",
+              "  pm.test('UserNotes1 = Bank',             () => pm.expect(j.UserNotes1).to.eql('Bank'));",
+              "  console.log('✅ Step 06 PASS – GetUser validated. IsActive:', j.IsActive);",
+              "})();"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetUser"
+          ]
+        },
+        "description": "POST /API/GetUser – Retrieves the newly created user and validates all key fields match what was submitted."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 07 – Get User V2 – Status = Enabled (post-create)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 07: Verifying initial status = Enabled...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('UserName matches',              () => pm.expect(j.UserName).to.eql(pm.environment.get('testUserName')));",
+              "  pm.test('Status = Enabled after create', () => pm.expect(j.Status).to.eql('Enabled'));",
+              "  console.log('✅ Step 07 PASS – Status:', j.Status);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetUserV2",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetUserV2"
+          ]
+        },
+        "description": "POST /API/GetUserV2 – V2 includes the Status field. Verifies new user defaults to Enabled status."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 08 – Has Role – Validate Role Assignment",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 08: Checking role assignment for user...');"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "    const j = pm.response.json()[0];",
+              "  pm.test('Response contains UserName',     () => pm.expect(j.UserName).to.eql(pm.environment.get('testUserName')));",
+              "  pm.test('Role is assigned correctly',     () => pm.expect(j.Role).to.include(pm.environment.get('testUserRole')));",
+              "  console.log('✅ Step 08 PASS – Role confirmed:', j.Role);",
+              "})();"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\",\n  \"RoleName\": \"{{testUserRole}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/HasRole",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "HasRole"
+          ]
+        },
+        "description": "POST /API/HasRole – Verifies the test user has been assigned the expected role."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 09 – List Groups for User – Validate Groups",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 09: Listing groups for test user...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('No server error (not 500)', () => pm.expect(pm.response.code).to.not.eql(500));",
+              "(function() {",
+              "  const body = pm.response.json();",
+              "  pm.test('Groups response is object or array', () => {",
+              "    pm.expect(Array.isArray(body) || (typeof body === 'object' && body !== null)).to.be.true;",
+              "  });",
+              "  console.log('✅ Step 09 PASS – ListGroups received for:', pm.environment.get('testUserName'));",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/ListGroupsforUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "ListGroupsforUser"
+          ]
+        },
+        "description": "POST /API/ListGroupsforUser – Lists all groups the test user belongs to."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 10 – Update User – Multiple Fields",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 10: Updating user with multiple new field values...');"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('Response has status field',    () => pm.expect(j).to.have.property('status'));",
+              "  pm.test('API status = 0 (success)',     () => pm.expect(String(j.status)).to.eql('0'));",
+              "  pm.test('message confirms updated',     () => pm.expect(j.message.toLowerCase()).to.include('modified successfully'));",
+              "  pm.test('message contains username',    () => pm.expect(j.message.toLowerCase()).to.include(pm.environment.get('testUserName').toLowerCase()));",
+              "  console.log('✅ Step 10 PASS – User updated | tranRefNum:', j.tranRefNum);",
+              "})();"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\",\n  \"Salutation\": \"Mrs\",\n  \"FirstName\": \"TestUpdated\",\n  \"MiddleName\": \"E2E-Updated\",\n  \"LastName\": \"UserUpdated\",\n  \"DOB\": \"15-06-1985\",\n  \"RoleName\": \"{{MakerRoleName}}\",\n  \"AddressLine1\": \"456 Updated Avenue\",\n  \"City\": \"Mumbai\",\n  \"State\": \"Maharashtra\",\n  \"Country\": \"India\",\n  \"PostalCode\": \"400001\",\n  \"MobileNo\": \"9999999999\",\n  \"Email\": \"{{testUserEmail}}\",\n  \"UserNotes1\": \"Contract\",\n  \"UserNotes2\": \"Updated Note 2\",\n  \"UserNotes3\": \"E2E Updated\",\n  \"UserNotes4\": \"Step 10\",\n  \"UserIDExpiryDt\": \"01-01-2100\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/UpdateUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "UpdateUser"
+          ]
+        },
+        "description": "POST /API/UpdateUser – Updates FirstName, LastName, DOB, Address, MobileNo, UserNotes1 (Bank→Contract) and other fields."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 11 – Get User – Verify Updated Fields",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 11: Verifying all updated fields persist...');"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('UserName unchanged',              () => pm.expect(j.UserName).to.eql(pm.environment.get('testUserName')));",
+              "  pm.test('RoleName updated to',    () => pm.expect(j.Role).to.include(pm.environment.get('MakerRoleName')));",
+              "  pm.test('FirstName updated to TestUpdated',() => pm.expect(j.FirstName).to.eql('TestUpdated'));",
+              "  pm.test('UserNotes1 updated to Contract',  () => pm.expect(j.UserNotes1).to.eql('Contract'));",
+              "  pm.test('IsActive still Yes',              () => pm.expect(j.IsActive).to.eql('Y'));",
+              "  console.log('✅ Step 11 PASS – Updated fields verified. FirstName:', j.FirstName, '| Notes1:', j.UserNotes1);",
+              "})();"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetUser"
+          ]
+        },
+        "description": "POST /API/GetUser – Retrieves user after update to verify all changes persisted."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 12 – Disable User",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 12: Disabling user...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('API status = 0',           () => pm.expect(String(j.status)).to.eql('0'));",
+              "  pm.test('message: disabled',         () => pm.expect(j.message.toLowerCase()).to.include('disabled successfully'));",
+              "  pm.test('message contains username', () => pm.expect(j.message.toLowerCase()).to.include(pm.environment.get('testUserName').toLowerCase()));",
+              "  console.log('✅ Step 12 PASS – User disabled | tranRefNum:', j.tranRefNum);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/DisableUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "DisableUser"
+          ]
+        },
+        "description": "POST /API/DisableUser – Disables the test user. Next step verifies Status = Disabled."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 13 – Get User V2 – Status = Disabled",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 13: Verifying status = Disabled...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('UserName matches',               () => pm.expect(j.UserName).to.eql(pm.environment.get('testUserName')));",
+              "  pm.test('Status = Disabled after disable',() => pm.expect(j.Status).to.eql('Disabled'));",
+              "  console.log('✅ Step 13 PASS – Status:', j.Status);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetUserV2",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetUserV2"
+          ]
+        },
+        "description": "POST /API/GetUserV2 – Verifies user Status changed to Disabled after Step 12."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 14 – Enable User",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 14: Re-enabling user...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('API status = 0',           () => pm.expect(String(j.status)).to.eql('0'));",
+              "  pm.test('message: enabled',          () => pm.expect(j.message.toLowerCase()).to.include('enabled successfully'));",
+              "  pm.test('message contains username', () => pm.expect(j.message.toLowerCase()).to.include(pm.environment.get('testUserName').toLowerCase()));",
+              "  console.log('✅ Step 14 PASS – User enabled | tranRefNum:', j.tranRefNum);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/EnableUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "EnableUser"
+          ]
+        },
+        "description": "POST /API/EnableUser – Re-enables the test user. Next step verifies Status = Enabled."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 15 – Get User V2 – Status = Enabled (post-enable)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 15: Verifying status = Enabled after re-enable...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('Status = Enabled after re-enable', () => pm.expect(j.Status).to.eql('Enabled'));",
+              "  console.log('✅ Step 15 PASS – Status:', j.Status);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetUserV2",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetUserV2"
+          ]
+        },
+        "description": "POST /API/GetUserV2 – Verifies Status returned to Enabled after Step 14."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 16 – Lock User",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 16: Locking user...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('API status = 0',           () => pm.expect(String(j.status)).to.eql('0'));",
+              "  pm.test('message: locked',           () => pm.expect(j.message.toLowerCase()).to.include('locked successfully'));",
+              "  pm.test('message contains username', () => pm.expect(j.message.toLowerCase()).to.include(pm.environment.get('testUserName').toLowerCase()));",
+              "  console.log('✅ Step 16 PASS – User locked | tranRefNum:', j.tranRefNum);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/LockUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "LockUser"
+          ]
+        },
+        "description": "POST /API/LockUser – Locks the test user. Next step verifies Status = Locked."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 17 – Get User V2 – Status = Locked",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 17: Verifying status = Locked...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('Status = Locked after lock', () => pm.expect(j.Status).to.eql('Locked'));",
+              "  console.log('✅ Step 17 PASS – Status:', j.Status);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetUserV2",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetUserV2"
+          ]
+        },
+        "description": "POST /API/GetUserV2 – Verifies user Status = Locked after Step 16."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 18 – Unlock User",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 18: Unlocking user...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('API status = 0',           () => pm.expect(String(j.status)).to.eql('0'));",
+              "  pm.test('message: unlocked',         () => pm.expect(j.message.toLowerCase()).to.include('unlocked successfully'));",
+              "  pm.test('message contains username', () => pm.expect(j.message.toLowerCase()).to.include(pm.environment.get('testUserName').toLowerCase()));",
+              "  console.log('✅ Step 18 PASS – User unlocked | tranRefNum:', j.tranRefNum);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/UnlockUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "UnlockUser"
+          ]
+        },
+        "description": "POST /API/UnlockUser – Unlocks the test user. Next step verifies Status = Enabled."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 19 – Get User V2 – Status = Enabled (post-unlock)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 19: Verifying status = Enabled after unlock...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('Status = Enabled after unlock', () => pm.expect(j.Status).to.eql('Enabled'));",
+              "  console.log('✅ Step 19 PASS – Status:', j.Status);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetUserV2",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetUserV2"
+          ]
+        },
+        "description": "POST /API/GetUserV2 – Verifies Status returned to Enabled after Step 18."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 20 – Delete User",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 20: Soft-deleting user...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('API status = 0',           () => pm.expect(String(j.status)).to.eql('0'));",
+              "  pm.test('message: deleted',          () => pm.expect(j.message.toLowerCase()).to.include('deleted successfully'));",
+              "  pm.test('message contains username', () => pm.expect(j.message.toLowerCase()).to.include(pm.environment.get('testUserName').toLowerCase()));",
+              "  console.log('✅ Step 20 PASS – User deleted (soft) | tranRefNum:', j.tranRefNum);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/DeleteUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "DeleteUser"
+          ]
+        },
+        "description": "POST /API/DeleteUser – Soft-deletes the test user. This is reversible via RestoreUser (Step 21)."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 21 – Restore User",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 21: Restoring deleted user...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('API status = 0',           () => pm.expect(String(j.status)).to.eql('0'));",
+              "  pm.test('message: restored',         () => pm.expect(j.message.toLowerCase()).to.include('restored successfully'));",
+              "  pm.test('message contains username', () => pm.expect(j.message.toLowerCase()).to.include(pm.environment.get('testUserName').toLowerCase()));",
+              "  console.log('✅ Step 21 PASS – User restored | tranRefNum:', j.tranRefNum);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/RestoreUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "RestoreUser"
+          ]
+        },
+        "description": "POST /API/RestoreUser – Restores the soft-deleted user. Next step validates they are accessible again."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 22 – Get User V2 – Validate Restored",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 22: Validating restored user is accessible...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('Restored user is retrievable',  () => pm.expect(j.UserName).to.eql(pm.environment.get('testUserName')));",
+              "  pm.test('Restored user Status = Enabled',() => pm.expect(j.Status).to.eql('Enabled'));",
+              "  console.log('✅ Step 22 PASS – Restored user validated. Status:', j.Status);",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/GetUserV2",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "GetUserV2"
+          ]
+        },
+        "description": "POST /API/GetUserV2 – Confirms restored user is accessible with Status = Enabled."
+      },
+      "response": []
+    },
+    {
+      "name": "Step 23 – Delete User – Final Cleanup",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Auto-increment TranRefNum for every request",
+              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
+              "pm.environment.set('tranCounter', n);",
+              "pm.environment.set('currentTran', String(n));",
+              "console.log('Step 23: Final cleanup – deleting test user...');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Response time < 3000ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));",
+              "pm.test('Content-Type is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "(function() {",
+              "  const j = pm.response.json();",
+              "  pm.test('API status = 0',           () => pm.expect(String(j.status)).to.eql('0'));",
+              "  pm.test('message: deleted (cleanup)',() => pm.expect(j.message.toLowerCase()).to.include('deleted successfully'));",
+              "  pm.test('message contains username', () => pm.expect(j.message.toLowerCase()).to.include(pm.environment.get('testUserName').toLowerCase()));",
+              "  console.log('');",
+              "  console.log('══════════════════════════════════════════');",
+              "  console.log('✅ E2E HAPPY PATH FLOW – ALL 23 STEPS COMPLETE');",
+              "  console.log('   Test user:', pm.environment.get('testUserName'));",
+              "  console.log('   TranRef counter:', pm.environment.get('tranCounter'));",
+              "  console.log('══════════════════════════════════════════');",
+              "})();"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"TranRefNum\": \"{{currentTran}}\",\n  \"UserName\": \"{{testUserName}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{auth_resource}}/API/DeleteUser",
+          "host": [
+            "{{auth_resource}}"
+          ],
+          "path": [
+            "API",
+            "DeleteUser"
+          ]
+        },
+        "description": "POST /API/DeleteUser – Final cleanup. Removes the test user created in Step 5, leaving the environment clean for the next run."
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Collection-level: auto-refresh token if near expiry",
+          "const expiry = parseInt(pm.environment.get('token_expiry') || '0');",
+          "const token  = pm.environment.get('access_token');",
+          "",
+          "if (token && Date.now() >= expiry) {",
+          "  console.log('[Collection] Token expired – refreshing...');",
+          "  pm.sendRequest({",
+          "    url: pm.environment.get('auth_url'),",
+          "    method: 'POST',",
+          "    header: { 'Content-Type': 'application/x-www-form-urlencoded' },",
+          "    body: {",
+          "      mode: 'raw',",
+          "      raw: 'grant_type=' + encodeURIComponent(pm.environment.get('auth_grant_type'))",
+          "         + '&resource='      + encodeURIComponent(pm.environment.get('auth_resource'))",
+          "         + '&client_id='     + encodeURIComponent(pm.environment.get('auth_client_id'))",
+          "         + '&client_secret=' + encodeURIComponent(pm.environment.get('auth_client_secret'))",
+          "    }",
+          "  }, function(err, res) {",
+          "    if (!err && res.code === 200) {",
+          "      const j = res.json();",
+          "      pm.environment.set('access_token', j.access_token);",
+          "      pm.environment.set('token_expiry', Date.now() + (j.expires_in - 60) * 1000);",
+          "      console.log('[Collection] Token refreshed automatically');",
+          "    }",
+          "  });",
+          "}"
+        ]
+      }
+    }
+  ]
+}
