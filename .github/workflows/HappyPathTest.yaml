@@ -21,7 +21,7 @@ jobs:
       - name: Execute Collection
         shell: powershell
         run: |
-          newman run "postman/collections/API – E2E_HappyPath_Flow(23 Steps, Fully Automated).postman_collection.json" `
-            -e "postman/collections/API – E2E_HappyPath_postman_environment.json" `
+          newman run "postman/collections/API_E2E_HappyPath.postman_collection.json" `
+            -e "postman/collections/QA_postman_environment.json" `
             --env-var "auth_client_id=${{ secrets.AUTH_CLIENT_ID }}" `
             --env-var "auth_client_secret=${{ secrets.AUTH_CLIENT_SECRET }}"
