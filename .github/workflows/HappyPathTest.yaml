@@ -9,19 +9,48 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 0
+
+      - name: Show Git Information
+        shell: powershell
+        run: |
+          Write-Host "Commit:"
+          git rev-parse HEAD
+          Write-Host ""
+          git status
+
+      - name: Show Repository Structure
+        shell: powershell
+        run: |
+          Get-ChildItem -Recurse postman
+
+      - name: Verify Collection Exists
+        shell: powershell
+        run: |
+          Get-Item "postman/collections/API_E2E_HappyPath.postman_collection.json"
+          Get-Item "postman/environments/QA_postman_environment.json"
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install Newman
-        run: npm install -g newman
+        shell: powershell
+        run: |
+          npm install -g newman
+          newman -v
 
-      - name: Execute Collection
+      - name: Execute Postman Collection
         shell: powershell
         run: |
           newman run "postman/collections/API_E2E_HappyPath.postman_collection.json" `
             -e "postman/environments/QA_postman_environment.json" `
             --env-var "auth_client_id=${{ secrets.AUTH_CLIENT_ID }}" `
-            --env-var "auth_client_secret=${{ secrets.AUTH_CLIENT_SECRET }}"
+            --env-var "auth_client_secret=${{ secrets.AUTH_CLIENT_SECRET }}" `
+            --verbose
