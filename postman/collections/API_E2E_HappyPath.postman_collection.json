@@ -17,7 +17,10 @@
             "type": "text/javascript",
             "exec": [
               "// Reset flow counters at start of every E2E run",
-              "pm.environment.set('tranCounter', '0');",
+              "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+              "pm.environment.set(\"currentTran\", tranRef);",
+              "console.log(\"TranRefNum:\", tranRef);",
+
               "pm.environment.set('testUserName', pm.environment.get('testUserName') || 'test.user01');",
               "console.log('═══ E2E Happy Path Flow Starting ═══');",
               "console.log('Test UserName:', pm.environment.get('testUserName'));"
@@ -94,9 +97,9 @@
           "script": {
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "// GET – no body needed",
               "console.log('Step 02: Fetching all roles for reference...');"
             ],
@@ -177,9 +180,9 @@
           "script": {
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 03: Capturing baseline user count...');"
             ],
             "type": "text/javascript",
@@ -255,9 +258,9 @@
           "script": {
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 04: Capturing baseline V2 status...');"
             ],
             "type": "text/javascript",
@@ -336,9 +339,9 @@
           "script": {
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "",
               "let id = Date.now();",
               "pm.environment.set('testUserName', 'test.user.' + id);",
@@ -432,9 +435,9 @@
           "script": {
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 06: Validating user creation via GetUser...');"
             ],
             "type": "text/javascript",
@@ -512,9 +515,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 07: Verifying initial status = Enabled...');"
             ]
           }
@@ -582,9 +585,9 @@
           "script": {
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 08: Checking role assignment for user...');"
             ],
             "type": "text/javascript",
@@ -658,9 +661,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 09: Listing groups for test user...');"
             ]
           }
@@ -729,9 +732,9 @@
           "script": {
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 10: Updating user with multiple new field values...');"
             ],
             "type": "text/javascript",
@@ -806,9 +809,9 @@
           "script": {
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 11: Verifying all updated fields persist...');"
             ],
             "type": "text/javascript",
@@ -885,9 +888,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 12: Disabling user...');"
             ]
           }
@@ -957,9 +960,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 13: Verifying status = Disabled...');"
             ]
           }
@@ -1028,9 +1031,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 14: Re-enabling user...');"
             ]
           }
@@ -1100,9 +1103,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 15: Verifying status = Enabled after re-enable...');"
             ]
           }
@@ -1170,9 +1173,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 16: Locking user...');"
             ]
           }
@@ -1242,9 +1245,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 17: Verifying status = Locked...');"
             ]
           }
@@ -1312,9 +1315,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 18: Unlocking user...');"
             ]
           }
@@ -1384,9 +1387,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 19: Verifying status = Enabled after unlock...');"
             ]
           }
@@ -1454,9 +1457,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 20: Soft-deleting user...');"
             ]
           }
@@ -1526,9 +1529,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 21: Restoring deleted user...');"
             ]
           }
@@ -1598,9 +1601,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 22: Validating restored user is accessible...');"
             ]
           }
@@ -1669,9 +1672,9 @@
             "type": "text/javascript",
             "exec": [
               "// Auto-increment TranRefNum for every request",
-              "let n = parseInt(pm.environment.get('tranCounter') || '0') + 1;",
-              "pm.environment.set('tranCounter', n);",
-              "pm.environment.set('currentTran', String(n));",
+             "const tranRef = Date.now().toString() + Math.floor(Math.random() * 10000);",
+"pm.environment.set(\"currentTran\", tranRef);",
+"console.log(\"TranRefNum:\", tranRef);",
               "console.log('Step 23: Final cleanup – deleting test user...');"
             ]
           }
