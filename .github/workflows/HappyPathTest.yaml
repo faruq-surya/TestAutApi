@@ -1,0 +1,27 @@
+name: Test Happy Path on APIs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  postman:
+
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Execute Collection
+        shell: powershell
+        run: |
+          newman run "postman/collections/API – E2E_HappyPath_Flow(23 Steps, Fully Automated).postman_collection.json" `
+            -e "postman/collections/API – E2E_HappyPath_postman_environment.json" `
+            --env-var "auth_client_id=${{ secrets.AUTH_CLIENT_ID }}" `
+            --env-var "auth_client_secret=${{ secrets.AUTH_CLIENT_SECRET }}"
