@@ -22,6 +22,6 @@ jobs:
         shell: powershell
         run: |
           newman run "postman/collections/API_E2E_HappyPath.postman_collection.json" `
-            -e "postman/collections/QA_postman_environment.json" `
+            -e "postman/environments/QA_postman_environment.json" `
             --env-var "auth_client_id=${{ secrets.AUTH_CLIENT_ID }}" `
             --env-var "auth_client_secret=${{ secrets.AUTH_CLIENT_SECRET }}"
