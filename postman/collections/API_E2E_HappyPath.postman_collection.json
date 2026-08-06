@@ -368,7 +368,17 @@
               "  pm.test('message confirms created',     () => pm.expect(j.message.toLowerCase()).to.include('created successfully'));",
               "  pm.test('message contains username',    () => pm.expect(j.message.toLowerCase()).to.include(pm.environment.get('testUserName').toLowerCase()));",
               "  pm.test('tranRefNum echoed back',       () => pm.expect(j.tranRefNum).to.be.a('string').and.not.empty);",
+
+              "console.log(\"========== STEP 05 ==========\");",
+              "console.log(\"Username :\", pm.environment.get(\"testUserName\"));",
+              "console.log(\"Email    :\", pm.environment.get(\"testUserEmail\"));",
+              "console.log(\"TranRef  :\", pm.environment.get(\"currentTran\"));",
+              "console.log(\"Body:\");",
+              "console.log(pm.variables.replaceIn(pm.request.body.raw));",
+              
               "  console.log('✅ Step 05 PASS – User created:', pm.environment.get('testUserName'), '| tranRefNum:', j.tranRefNum);",
+              
+              
               "})();"
             ],
             "type": "text/javascript",
